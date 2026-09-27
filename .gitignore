@@ -1,0 +1,62 @@
+# =========================
+# Environment / Secrets
+# =========================
+
+.env
+*.env
+.env.*
+!.env.example
+
+# =========================
+# Python
+# =========================
+
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.venv/
+backend/venv/
+
+# =========================
+# Django
+# =========================
+
+db.sqlite3
+backend/db.sqlite3
+
+staticfiles/
+media/
+
+# =========================
+# Node / React
+# =========================
+
+node_modules/
+frontend/node_modules/
+
+dist/
+build/
+
+# =========================
+# IDE / Editor
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+
+*.log
