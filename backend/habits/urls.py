@@ -4,9 +4,9 @@ from .views import (
     HabitListCreateView,
     HabitDetailView,
     CompleteHabitView,
-    DashboardView
+    DashboardView,
+    HabitHistoryView,
 )
-
 
 
 urlpatterns = [
@@ -29,6 +29,11 @@ urlpatterns = [
     path(
         "dashboard/",
         DashboardView.as_view()
+    ),
+
+    path(
+        "history/",
+        HabitHistoryView.as_view()
     ),
 
 ]

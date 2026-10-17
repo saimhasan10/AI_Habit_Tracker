@@ -37,10 +37,8 @@ class Habit(models.Model):
         default=True
     )
 
-
     def __str__(self):
         return self.title
-
 
 
 class HabitCompletion(models.Model):
@@ -58,7 +56,6 @@ class HabitCompletion(models.Model):
     completed = models.BooleanField(
         default=True
     )
-
 
     def __str__(self):
         return f"{self.habit.title} - {self.date}"

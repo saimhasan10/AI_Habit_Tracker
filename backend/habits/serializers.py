@@ -3,11 +3,9 @@ from rest_framework import serializers
 from .models import Habit, HabitCompletion
 
 
-
 class HabitCompletionSerializer(serializers.ModelSerializer):
 
     class Meta:
-
         model = HabitCompletion
 
         fields = [
@@ -17,7 +15,6 @@ class HabitCompletionSerializer(serializers.ModelSerializer):
         ]
 
 
-
 class HabitSerializer(serializers.ModelSerializer):
 
     completions = HabitCompletionSerializer(
@@ -25,9 +22,7 @@ class HabitSerializer(serializers.ModelSerializer):
         read_only=True
     )
 
-
     class Meta:
-
         model = Habit
 
         fields = [
