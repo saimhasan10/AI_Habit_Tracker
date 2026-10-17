@@ -20,54 +20,10 @@ client = genai.Client(
 )
 
 
-def get_text_generation_model():
-
-    try:
-
-        models = list(
-            client.models.list()
-        )
-
-        # Only keep models that can be used
-        # for text generation.
-        for model in models:
-
-            supported_actions = getattr(
-                model,
-                "supported_actions",
-                []
-            )
-
-            if (
-                "generateContent"
-                in supported_actions
-            ):
-
-                return model.name.replace(
-                    "models/",
-                    ""
-                )
-
-    except Exception as error:
-
-        print(
-            "Could not list Gemini models:",
-            error
-        )
-
-
-    raise RuntimeError(
-        "No suitable Gemini text-generation model "
-        "is currently available."
-    )
-
-
 def generate_ai_response(prompt):
 
-    model_name = get_text_generation_model()
-
     response = client.models.generate_content(
-        model=model_name,
+        model="gemini-3.8-flash",
         contents=prompt
     )
 
