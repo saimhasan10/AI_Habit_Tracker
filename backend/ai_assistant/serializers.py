@@ -3,8 +3,9 @@ from rest_framework import serializers
 from .models import AIRequest
 
 
-
-class AIRequestSerializer(serializers.ModelSerializer):
+class AIRequestSerializer(
+    serializers.ModelSerializer
+):
 
     class Meta:
 
@@ -14,5 +15,5 @@ class AIRequestSerializer(serializers.ModelSerializer):
             "id",
             "question",
             "response",
-            "created_at"
+            "created_at",
         ]

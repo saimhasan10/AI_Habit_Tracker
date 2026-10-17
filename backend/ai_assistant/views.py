@@ -1,13 +1,11 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 from .models import AIRequest
 from .serializers import AIRequestSerializer
-
 from .gemini import generate_ai_response
-
 
 
 class AIChatView(APIView):
@@ -16,45 +14,98 @@ class AIChatView(APIView):
         IsAuthenticated
     ]
 
-
-    def post(self, request):
+    def post(
+        self,
+        request
+    ):
 
         question = request.data.get(
             "question"
         )
 
+        if not question:
+
+            return Response(
+                {
+                    "error":
+                        "Question is required."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        question = str(
+            question
+        ).strip()
+
+        if not question:
+
+            return Response(
+                {
+                    "error":
+                        "Question cannot be empty."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if len(question) > 2000:
+
+            return Response(
+                {
+                    "error":
+                        "Question is too long. "
+                        "Maximum 2000 characters."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         prompt = f"""
-        You are an AI habit coach.
+You are an AI habit coach.
 
-        User question:
-        {question}
+The user is using a simple habit tracking application.
 
-        Give simple practical advice.
-        """
+User question:
+{question}
 
+Give simple, practical, encouraging advice.
 
-        answer = generate_ai_response(
-            prompt
-        )
+Keep the response concise and easy to understand.
+"""
 
+        try:
+
+            answer = generate_ai_response(
+                prompt
+            )
+
+        except Exception as error:
+
+            print(
+                "Gemini error:",
+                error
+            )
+
+            return Response(
+                {
+                    "error":
+                        "AI service is temporarily unavailable.",
+                    "detail":
+                        str(error)
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
 
         ai_request = AIRequest.objects.create(
-
             user=request.user,
-
             question=question,
-
             response=answer
         )
-
 
         return Response(
             AIRequestSerializer(
                 ai_request
-            ).data
+            ).data,
+            status=status.HTTP_201_CREATED
         )
-
 
 
 class AIHistoryView(APIView):
@@ -63,19 +114,21 @@ class AIHistoryView(APIView):
         IsAuthenticated
     ]
 
+    def get(
+        self,
+        request
+    ):
 
-    def get(self, request):
-
-        history = AIRequest.objects.filter(
-            user=request.user
+        history = (
+            AIRequest.objects
+            .filter(user=request.user)
+            .order_by("-created_at")
         )
-
 
         serializer = AIRequestSerializer(
             history,
             many=True
         )
-
 
         return Response(
             serializer.data

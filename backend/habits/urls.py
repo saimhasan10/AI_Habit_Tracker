@@ -17,16 +17,6 @@ urlpatterns = [
     ),
 
     path(
-        "<int:id>/",
-        HabitDetailView.as_view()
-    ),
-
-    path(
-        "<int:id>/complete/",
-        CompleteHabitView.as_view()
-    ),
-
-    path(
         "dashboard/",
         DashboardView.as_view()
     ),
@@ -34,6 +24,16 @@ urlpatterns = [
     path(
         "history/",
         HabitHistoryView.as_view()
+    ),
+
+    path(
+        "<int:id>/",
+        HabitDetailView.as_view()
+    ),
+
+    path(
+        "<int:id>/complete/",
+        CompleteHabitView.as_view()
     ),
 
 ]

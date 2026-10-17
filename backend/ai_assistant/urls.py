@@ -2,9 +2,8 @@ from django.urls import path
 
 from .views import (
     AIChatView,
-    AIHistoryView
+    AIHistoryView,
 )
-
 
 
 urlpatterns = [
@@ -13,7 +12,6 @@ urlpatterns = [
         "chat/",
         AIChatView.as_view()
     ),
-
 
     path(
         "history/",

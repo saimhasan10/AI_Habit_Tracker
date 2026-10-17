@@ -3,19 +3,24 @@ from rest_framework import serializers
 from .models import Habit, HabitCompletion
 
 
-class HabitCompletionSerializer(serializers.ModelSerializer):
+class HabitCompletionSerializer(
+    serializers.ModelSerializer
+):
 
     class Meta:
+
         model = HabitCompletion
 
         fields = [
             "id",
             "date",
-            "completed"
+            "completed",
         ]
 
 
-class HabitSerializer(serializers.ModelSerializer):
+class HabitSerializer(
+    serializers.ModelSerializer
+):
 
     completions = HabitCompletionSerializer(
         many=True,
@@ -23,6 +28,7 @@ class HabitSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
+
         model = Habit
 
         fields = [
@@ -32,5 +38,5 @@ class HabitSerializer(serializers.ModelSerializer):
             "frequency",
             "created_at",
             "is_active",
-            "completions"
+            "completions",
         ]
