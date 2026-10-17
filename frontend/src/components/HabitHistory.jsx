@@ -1,13 +1,13 @@
 import {
-    Check,
     CalendarDays,
+    Check,
 } from "lucide-react";
 
 
-const formatDate = (dateString) => {
+const formatDate = (value) => {
 
     const date = new Date(
-        `${dateString}T00:00:00`
+        `${value}T00:00:00`
     );
 
     return date.toLocaleDateString(
@@ -21,146 +21,201 @@ const formatDate = (dateString) => {
 };
 
 
+const formatWeek = (
+    start,
+    end
+) => {
+
+    return `${formatDate(start)} - ${formatDate(end)}`;
+};
+
+
 const HabitHistory = ({
-    history,
-    period,
+    dailyHistory = [],
+    weeklyHistory = [],
 }) => {
 
-    if (!history?.length) {
-        return null;
-    }
-
-
-    const totalCompleted =
-        history.reduce(
-            (total, day) =>
-                total + day.completed_count,
-            0
-        );
-
-
-    const totalPossible =
-        history.reduce(
-            (total, day) =>
-                total + day.total_habits,
-            0
-        );
-
-
-    const percentage =
-        totalPossible > 0
-            ? Math.round(
-                (totalCompleted /
-                    totalPossible) *
-                100
-            )
-            : 0;
-
-
     return (
+
         <section className="history-section">
 
-            <div className="history-header">
+            <div className="history-title">
 
-                <div>
+                <CalendarDays size={20} />
 
-                    <div className="history-title">
-
-                        <CalendarDays size={20} />
-
-                        <h2>
-                            {period === "month"
-                                ? "Monthly history"
-                                : "Weekly history"}
-                        </h2>
-
-                    </div>
-
-                    <p>
-                        Track your consistency over time.
-                    </p>
-
-                </div>
-
-
-                <div className="history-summary">
-
-                    <strong>
-                        {percentage}%
-                    </strong>
-
-                    <span>
-                        consistency
-                    </span>
-
-                </div>
+                <h2>
+                    Progress history
+                </h2>
 
             </div>
 
 
-            <div className="history-grid">
+            {dailyHistory.length > 0 && (
 
-                {history.map((day) => (
+                <div className="history-block">
 
-                    <div
-                        key={day.date}
-                        className="history-day"
-                    >
+                    <h3>
+                        Daily habits
+                    </h3>
 
-                        <div className="history-day-header">
+                    <div className="history-grid">
 
-                            <span>
-                                {formatDate(day.date)}
-                            </span>
+                        {dailyHistory.map(
+                            (day) => (
 
-                            <strong>
-                                {day.completed_count}/
-                                {day.total_habits}
-                            </strong>
+                                <div
+                                    className="history-day"
+                                    key={day.date}
+                                >
 
-                        </div>
+                                    <strong>
+                                        {formatDate(day.date)}
+                                    </strong>
+
+                                    <span>
+                                        {day.completed_count}/
+                                        {day.total_habits}
+                                    </span>
 
 
-                        <div className="history-habits">
+                                    <div className="history-habits">
 
-                            {day.habits.map(
-                                (habit) => (
+                                        {day.habits.map(
+                                            (habit) => (
 
-                                    <div
-                                        key={habit.habit_id}
-                                        className="history-habit"
-                                    >
+                                                <div
+                                                    className="history-habit"
+                                                    key={habit.habit_id}
+                                                >
 
-                                        <span
-                                            className={
-                                                habit.completed
-                                                    ? "history-check completed"
-                                                    : "history-check"
-                                            }
-                                        >
+                                                    <span
+                                                        className={
+                                                            habit.completed
+                                                                ? "history-check completed"
+                                                                : "history-check"
+                                                        }
+                                                    >
 
-                                            {habit.completed && (
-                                                <Check size={13} />
+                                                        {habit.completed && (
+                                                            <Check size={12} />
+                                                        )}
+
+                                                    </span>
+
+                                                    <span>
+                                                        {habit.habit_title}
+                                                    </span>
+
+                                                </div>
+
+                                            )
+                                        )}
+
+                                    </div>
+
+                                </div>
+
+                            )
+                        )}
+
+                    </div>
+
+                </div>
+
+            )}
+
+
+            {weeklyHistory.length > 0 && (
+
+                <div className="history-block">
+
+                    <h3>
+                        Weekly habits
+                    </h3>
+
+                    <div className="weekly-history-list">
+
+                        {weeklyHistory.map(
+                            (week) => (
+
+                                <div
+                                    className="weekly-history-card"
+                                    key={`${week.week_start}-${week.week_end}`}
+                                >
+
+                                    <div>
+
+                                        <strong>
+                                            {formatWeek(
+                                                week.week_start,
+                                                week.week_end
                                             )}
-
-                                        </span>
+                                        </strong>
 
                                         <span>
-                                            {habit.habit_title}
+                                            {week.completed_count}/
+                                            {week.total_habits}
+                                            {" "}completed
                                         </span>
 
                                     </div>
 
-                                )
-                            )}
 
-                        </div>
+                                    <div className="weekly-habit-list">
+
+                                        {week.habits.map(
+                                            (habit) => (
+
+                                                <div
+                                                    className="history-habit"
+                                                    key={habit.habit_id}
+                                                >
+
+                                                    <span
+                                                        className={
+                                                            habit.completed
+                                                                ? "history-check completed"
+                                                                : "history-check"
+                                                        }
+                                                    >
+
+                                                        {habit.completed && (
+                                                            <Check size={12} />
+                                                        )}
+
+                                                    </span>
+
+                                                    <span>
+                                                        {habit.habit_title}
+                                                    </span>
+
+                                                </div>
+
+                                            )
+                                        )}
+
+                                    </div>
+
+                                </div>
+
+                            )
+                        )}
 
                     </div>
 
-                ))}
+                </div>
 
-            </div>
+            )}
+
+
+            {dailyHistory.length === 0 &&
+                weeklyHistory.length === 0 && (
+
+                    <p className="history-empty">
+                        No progress history available yet.
+                    </p>
+
+                )}
 
         </section>
     );

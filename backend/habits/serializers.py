@@ -8,7 +8,6 @@ class HabitCompletionSerializer(
 ):
 
     class Meta:
-
         model = HabitCompletion
 
         fields = [
@@ -28,7 +27,6 @@ class HabitSerializer(
     )
 
     class Meta:
-
         model = Habit
 
         fields = [

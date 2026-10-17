@@ -6,36 +6,6 @@ import {
 } from "lucide-react";
 
 
-const isCompletedToday = (habit) => {
-
-    if (
-        habit.completed === true ||
-        habit.is_completed === true ||
-        habit.today_completed === true
-    ) {
-        return true;
-    }
-
-
-    if (!Array.isArray(habit.completions)) {
-        return false;
-    }
-
-
-    const today =
-        new Date()
-            .toISOString()
-            .split("T")[ 0 ];
-
-
-    return habit.completions.some(
-        (completion) =>
-            completion.date === today &&
-            completion.completed === true
-    );
-};
-
-
 const HabitCard = ({
     habit,
     onComplete,
@@ -44,26 +14,23 @@ const HabitCard = ({
 }) => {
 
     const completed =
-        isCompletedToday(habit);
-
-
-    const title =
-        habit.title ||
-        habit.name ||
-        "Untitled Habit";
-
-
-    const description =
-        habit.description ||
-        "No description";
-
-
-    const frequency =
-        habit.frequency ||
-        "daily";
+        habit.today_completed === true ||
+        habit.completed === true ||
+        (
+            Array.isArray(habit.completions) &&
+            habit.completions.some(
+                (item) =>
+                    item.date ===
+                    new Date()
+                        .toISOString()
+                        .split("T")[ 0 ] &&
+                    item.completed === true
+            )
+        );
 
 
     return (
+
         <article
             className={`habit-card ${completed ? "completed" : ""
                 }`}
@@ -75,13 +42,13 @@ const HabitCard = ({
                     type="button"
                     className={`complete-button ${completed ? "done" : ""
                         }`}
+                    disabled={completed}
                     onClick={() =>
                         onComplete(habit.id)
                     }
-                    disabled={completed}
                     title={
                         completed
-                            ? "Completed today"
+                            ? "Completed"
                             : "Complete habit"
                     }
                 >
@@ -98,15 +65,16 @@ const HabitCard = ({
                 <div className="habit-content">
 
                     <h3>
-                        {title}
+                        {habit.title}
                     </h3>
 
                     <p>
-                        {description}
+                        {habit.description ||
+                            "No description"}
                     </p>
 
                     <span className="frequency-tag">
-                        {frequency}
+                        {habit.frequency}
                     </span>
 
                 </div>

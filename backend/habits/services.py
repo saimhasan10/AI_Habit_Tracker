@@ -16,7 +16,6 @@ def calculate_streak(completions):
         return 0
 
     streak = 1
-
     current_date = dates[0]
 
     for completion_date in dates[1:]:
@@ -24,13 +23,10 @@ def calculate_streak(completions):
         if completion_date == (
             current_date - timedelta(days=1)
         ):
-
             streak += 1
-
             current_date = completion_date
 
         else:
-
             break
 
     return streak

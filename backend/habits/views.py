@@ -12,21 +12,13 @@ from .serializers import HabitSerializer
 from .services import calculate_streak
 
 
-def get_week_start(date_value):
-
+def week_start(date_value):
     return date_value - timedelta(
         days=date_value.weekday()
     )
 
 
-def get_week_end(date_value):
-
-    return get_week_start(
-        date_value
-    ) + timedelta(days=6)
-
-
-def get_month_end(date_value):
+def month_end(date_value):
 
     if date_value.month == 12:
 
@@ -43,31 +35,7 @@ def get_month_end(date_value):
             day=1
         )
 
-    return next_month - timedelta(
-        days=1
-    )
-
-
-def build_period_dates(
-    start_date,
-    end_date
-):
-
-    dates = []
-
-    current_date = start_date
-
-    while current_date <= end_date:
-
-        dates.append(
-            current_date
-        )
-
-        current_date += timedelta(
-            days=1
-        )
-
-    return dates
+    return next_month - timedelta(days=1)
 
 
 class HabitListCreateView(APIView):
@@ -122,22 +90,14 @@ class HabitDetailView(APIView):
         IsAuthenticated
     ]
 
-    def get_object(
-        self,
-        id,
-        user
-    ):
+    def get_object(self, id, user):
 
         return Habit.objects.get(
             id=id,
             user=user
         )
 
-    def get(
-        self,
-        request,
-        id
-    ):
+    def get(self, request, id):
 
         try:
 
@@ -155,19 +115,13 @@ class HabitDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        serializer = HabitSerializer(
-            habit
-        )
+        serializer = HabitSerializer(habit)
 
         return Response(
             serializer.data
         )
 
-    def put(
-        self,
-        request,
-        id
-    ):
+    def put(self, request, id):
 
         try:
 
@@ -203,11 +157,7 @@ class HabitDetailView(APIView):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    def delete(
-        self,
-        request,
-        id
-    ):
+    def delete(self, request, id):
 
         try:
 
@@ -230,8 +180,7 @@ class HabitDetailView(APIView):
         return Response(
             {
                 "message": "Habit deleted"
-            },
-            status=status.HTTP_200_OK
+            }
         )
 
 
@@ -241,11 +190,7 @@ class CompleteHabitView(APIView):
         IsAuthenticated
     ]
 
-    def post(
-        self,
-        request,
-        id
-    ):
+    def post(self, request, id):
 
         try:
 
@@ -265,16 +210,17 @@ class CompleteHabitView(APIView):
 
         today = timezone.localdate()
 
-        completion = (
-            HabitCompletion.objects
-            .filter(
+        completion, created = (
+            HabitCompletion.objects.get_or_create(
                 habit=habit,
-                date=today
+                date=today,
+                defaults={
+                    "completed": True
+                }
             )
-            .first()
         )
 
-        if completion:
+        if not created:
 
             return Response(
                 {
@@ -284,14 +230,8 @@ class CompleteHabitView(APIView):
                         completion.date,
                     "completed":
                         completion.completed,
-                },
-                status=status.HTTP_200_OK
+                }
             )
-
-        completion = HabitCompletion.objects.create(
-            habit=habit,
-            completed=True
-        )
 
         return Response(
             {
@@ -309,48 +249,42 @@ class DashboardView(APIView):
         IsAuthenticated
     ]
 
-    def get(
-        self,
-        request
-    ):
+    def get(self, request):
 
         today = timezone.localdate()
 
-        week_start = get_week_start(
-            today
-        )
+        current_week_start = week_start(today)
 
-        week_end = get_week_end(
-            today
-        )
-
-        month_start = today.replace(
+        current_month_start = today.replace(
             day=1
-        )
-
-        month_end = get_month_end(
-            today
         )
 
         habits = (
             Habit.objects
-            .filter(user=request.user)
+            .filter(
+                user=request.user,
+                is_active=True
+            )
             .prefetch_related("completions")
         )
 
-        habit_data = []
+        total_habits = habits.count()
 
-        total_today_completed = 0
+        completed_today = 0
 
-        total_today_expected = 0
+        today_expected = 0
 
-        total_week_completed = 0
+        week_completed = 0
 
-        total_week_expected = 0
+        week_expected = 0
 
-        total_month_completed = 0
+        month_completed = 0
 
-        total_month_expected = 0
+        month_expected = 0
+
+        best_streak = 0
+
+        habit_progress = []
 
         for habit in habits:
 
@@ -368,102 +302,95 @@ class DashboardView(APIView):
                 today in completed_dates
             )
 
+            streak = calculate_streak(
+                completions
+            )
+
+            best_streak = max(
+                best_streak,
+                streak
+            )
+
             if habit.frequency == "daily":
 
-                if (
-                    habit.created_at.date()
-                    <= today
-                ):
+                if habit.created_at.date() <= today:
 
-                    total_today_expected += 1
+                    today_expected += 1
 
                     if today_completed:
-                        total_today_completed += 1
+                        completed_today += 1
 
-                week_expected = 0
-                week_completed = 0
+                habit_week_completed = 0
+                habit_week_expected = 0
 
-                current_date = week_start
-
-                while current_date <= today:
-
-                    if (
-                        habit.created_at.date()
-                        <= current_date
-                    ):
-
-                        week_expected += 1
-
-                        if current_date in completed_dates:
-
-                            week_completed += 1
-
-                    current_date += timedelta(
-                        days=1
-                    )
-
-                month_expected = 0
-                month_completed = 0
-
-                current_date = month_start
+                current_date = current_week_start
 
                 while current_date <= today:
 
                     if (
-                        habit.created_at.date()
-                        <= current_date
+                        current_date
+                        >= habit.created_at.date()
                     ):
 
-                        month_expected += 1
+                        habit_week_expected += 1
 
                         if current_date in completed_dates:
 
-                            month_completed += 1
+                            habit_week_completed += 1
 
-                    current_date += timedelta(
-                        days=1
-                    )
+                    current_date += timedelta(days=1)
+
+                habit_month_completed = 0
+                habit_month_expected = 0
+
+                current_date = current_month_start
+
+                while current_date <= today:
+
+                    if (
+                        current_date
+                        >= habit.created_at.date()
+                    ):
+
+                        habit_month_expected += 1
+
+                        if current_date in completed_dates:
+
+                            habit_month_completed += 1
+
+                    current_date += timedelta(days=1)
 
             else:
 
-                total_today_expected += 0
+                habit_week_expected = 1
 
-                week_expected = 1
-
-                current_week_start = week_start
-
-                week_completed = any(
-                    current_week_start
-                    <= completion_date
-                    <= today
-                    for completion_date
-                    in completed_dates
+                habit_week_completed = int(
+                    any(
+                        current_week_start
+                        <= date_value
+                        <= today
+                        for date_value
+                        in completed_dates
+                    )
                 )
 
-                week_completed = (
-                    1
-                    if week_completed
-                    else 0
+                habit_month_expected = 0
+                habit_month_completed = 0
+
+                current_week = week_start(
+                    current_month_start
                 )
 
-                month_expected = 0
-
-                month_completed = 0
-
-                current_week_start = get_week_start(
-                    month_start
-                )
-
-                while current_week_start <= month_end:
+                while current_week <= today:
 
                     current_week_end = (
-                        current_week_start
+                        current_week
                         + timedelta(days=6)
                     )
 
                     actual_start = max(
-                        current_week_start,
-                        month_start
+                        current_week,
+                        current_month_start
                     )
 
                     actual_end = min(
@@ -473,104 +400,101 @@ class DashboardView(APIView):
 
                     if actual_start <= actual_end:
 
-                        month_expected += 1
+                        habit_month_expected += 1
 
-                        week_done = any(
+                        completed = any(
                             actual_start
-                            <= completion_date
+                            <= date_value
                             <= actual_end
-                            for completion_date
+                            for date_value
                             in completed_dates
                         )
 
-                        if week_done:
-                            month_completed += 1
+                        if completed:
+                            habit_month_completed += 1
 
-                    current_week_start += timedelta(
-                        days=7
-                    )
+                    current_week += timedelta(days=7)
 
-            total_week_expected += week_expected
-            total_week_completed += week_completed
+                today_expected += 0
 
-            total_month_expected += month_expected
-            total_month_completed += month_completed
+            week_expected += habit_week_expected
+            week_completed += habit_week_completed
 
-            streak = calculate_streak(
-                completions
-            )
+            month_expected += habit_month_expected
+            month_completed += habit_month_completed
 
-            habit_data.append(
+            habit_progress.append(
                 {
                     "id": habit.id,
                     "title": habit.title,
                     "frequency": habit.frequency,
                     "today_completed": today_completed,
                     "streak": streak,
-                    "week_completed": week_completed,
-                    "week_expected": week_expected,
-                    "month_completed": month_completed,
-                    "month_expected": month_expected,
+                    "week_completed":
+                        habit_week_completed,
+                    "week_expected":
+                        habit_week_expected,
+                    "month_completed":
+                        habit_month_completed,
+                    "month_expected":
+                        habit_month_expected,
                 }
             )
 
         today_consistency = (
             round(
-                (
-                    total_today_completed
-                    / total_today_expected
-                ) * 100
+                completed_today
+                / today_expected
+                * 100
             )
-            if total_today_expected > 0
+            if today_expected
             else 0
         )
 
         week_consistency = (
             round(
-                (
-                    total_week_completed
-                    / total_week_expected
-                ) * 100
+                week_completed
+                / week_expected
+                * 100
             )
-            if total_week_expected > 0
+            if week_expected
             else 0
         )
 
         month_consistency = (
             round(
-                (
-                    total_month_completed
-                    / total_month_expected
-                ) * 100
+                month_completed
+                / month_expected
+                * 100
             )
-            if total_month_expected > 0
+            if month_expected
             else 0
-        )
-
-        best_streak = max(
-            (
-                item["streak"]
-                for item in habit_data
-            ),
-            default=0
         )
 
         return Response(
             {
                 "summary": {
-                    "total_habits": len(habit_data),
+                    "total_habits":
+                        total_habits,
+
                     "completed_today":
-                        total_today_completed,
+                        completed_today,
+
                     "today_consistency":
                         today_consistency,
+
                     "week_consistency":
                         week_consistency,
+
                     "month_consistency":
                         month_consistency,
+
                     "best_streak":
                         best_streak,
                 },
-                "habits": habit_data,
+
+                "habits":
+                    habit_progress,
             }
         )
 
@@ -581,10 +505,7 @@ class HabitHistoryView(APIView):
         IsAuthenticated
     ]
 
-    def get(
-        self,
-        request
-    ):
+    def get(self, request):
 
         period = request.query_params.get(
             "period",
@@ -593,48 +514,43 @@ class HabitHistoryView(APIView):
 
         today = timezone.localdate()
 
+        habits = (
+            Habit.objects
+            .filter(
+                user=request.user,
+                is_active=True
+            )
+            .prefetch_related("completions")
+        )
+
         if period == "month":
 
             start_date = today.replace(
                 day=1
             )
 
-            end_date = get_month_end(
-                today
-            )
+            end_date = month_end(today)
 
         else:
 
             period = "week"
 
-            start_date = get_week_start(
-                today
+            start_date = week_start(today)
+
+            end_date = start_date + timedelta(
+                days=6
             )
 
-            end_date = get_week_end(
-                today
-            )
+        daily_history = []
 
-        habits = (
-            Habit.objects
-            .filter(user=request.user)
-            .prefetch_related("completions")
-        )
+        current_date = start_date
 
-        history = []
+        while current_date <= min(
+            end_date,
+            today
+        ):
 
-        # ==========================
-        # DAILY HISTORY
-        # ==========================
-
-        daily_dates = build_period_dates(
-            start_date,
-            min(end_date, today)
-        )
-
-        for current_date in daily_dates:
-
-            daily_habits = []
+            items = []
 
             for habit in habits:
 
@@ -642,8 +558,8 @@ class HabitHistoryView(APIView):
                     continue
 
                 if (
-                    current_date
-                    < habit.created_at.date()
+                    habit.created_at.date()
+                    > current_date
                 ):
                     continue
 
@@ -654,68 +570,58 @@ class HabitHistoryView(APIView):
                     in habit.completions.all()
                 )
 
-                daily_habits.append(
+                items.append(
                     {
-                        "habit_id":
-                            habit.id,
-                        "habit_title":
-                            habit.title,
-                        "completed":
-                            completed,
+                        "habit_id": habit.id,
+                        "habit_title": habit.title,
+                        "completed": completed,
                     }
                 )
 
-            if daily_habits:
+            if items:
 
-                history.append(
+                daily_history.append(
                     {
-                        "date":
-                            current_date,
-                        "type":
-                            "daily",
+                        "date": current_date,
                         "completed_count":
                             sum(
-                                1
-                                for item
-                                in daily_habits
-                                if item["completed"]
+                                item["completed"]
+                                for item in items
                             ),
                         "total_habits":
-                            len(daily_habits),
+                            len(items),
                         "habits":
-                            daily_habits,
+                            items,
                     }
                 )
 
-        # ==========================
-        # WEEKLY HISTORY
-        # ==========================
+            current_date += timedelta(days=1)
 
         weekly_history = []
 
-        current_week_start = get_week_start(
+        current_week = week_start(
             start_date
         )
 
-        while current_week_start <= end_date:
+        while current_week <= end_date:
 
-            current_week_end = (
-                current_week_start
+            week_end = (
+                current_week
                 + timedelta(days=6)
             )
 
             actual_start = max(
-                current_week_start,
+                current_week,
                 start_date
             )
 
             actual_end = min(
-                current_week_end,
+                week_end,
                 end_date,
                 today
             )
 
-            weekly_habits = []
+            items = []
 
             if actual_start <= actual_end:
 
@@ -739,7 +645,7 @@ class HabitHistoryView(APIView):
                         in habit.completions.all()
                     )
 
-                    weekly_habits.append(
+                    items.append(
                         {
                             "habit_id":
                                 habit.id,
@@ -750,7 +656,7 @@ class HabitHistoryView(APIView):
                         }
                     )
 
-                if weekly_habits:
+                if items:
 
                     weekly_history.append(
                         {
@@ -758,32 +664,27 @@ class HabitHistoryView(APIView):
                                 actual_start,
                             "week_end":
                                 actual_end,
-                            "type":
-                                "weekly",
                             "completed_count":
                                 sum(
-                                    1
-                                    for item
-                                    in weekly_habits
-                                    if item["completed"]
+                                    item["completed"]
+                                    for item in items
                                 ),
                             "total_habits":
-                                len(weekly_habits),
+                                len(items),
                             "habits":
-                                weekly_habits,
+                                items,
                         }
                     )
 
-            current_week_start += timedelta(
-                days=7
-            )
+            current_week += timedelta(days=7)
 
         return Response(
             {
                 "period": period,
                 "start_date": start_date,
                 "end_date": end_date,
-                "daily_history": history,
+                "daily_history":
+                    daily_history,
                 "weekly_history":
                     weekly_history,
             }

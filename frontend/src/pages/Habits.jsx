@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
 
 import {
-    CheckCircle2,
     Plus,
     X,
 } from "lucide-react";
 
 import Navbar from "../components/Navbar";
 import HabitCard from "../components/HabitCard";
-import HabitHistory from "../components/HabitHistory";
 import Loading from "../components/Loading";
 
 import {
@@ -16,7 +17,6 @@ import {
     createHabit,
     deleteHabit,
     getHabits,
-    getHabitHistory,
     updateHabit,
 } from "../services/habitService";
 
@@ -33,12 +33,6 @@ const Habits = () => {
     const [ habits, setHabits ] =
         useState([]);
 
-    const [ history, setHistory ] =
-        useState([]);
-
-    const [ historyPeriod, setHistoryPeriod ] =
-        useState("week");
-
     const [ form, setForm ] =
         useState(initialForm);
 
@@ -52,9 +46,6 @@ const Habits = () => {
         useState(true);
 
     const [ saving, setSaving ] =
-        useState(false);
-
-    const [ historyLoading, setHistoryLoading ] =
         useState(false);
 
     const [ error, setError ] =
@@ -71,14 +62,12 @@ const Habits = () => {
             setHabits(
                 Array.isArray(data)
                     ? data
-                    : data.results ||
-                    data.habits ||
-                    []
+                    : data.results || []
             );
 
-        } catch (err) {
+        } catch (error) {
 
-            console.error(err);
+            console.error(error);
 
             setError(
                 "Could not load habits."
@@ -92,73 +81,37 @@ const Habits = () => {
     };
 
 
-    const loadHistory = async (
-        period = historyPeriod
-    ) => {
-
-        try {
-
-            setHistoryLoading(true);
-
-            const data =
-                await getHabitHistory(
-                    period
-                );
-
-            setHistory(
-                data.history || []
-            );
-
-        } catch (err) {
-
-            console.error(err);
-
-            setError(
-                "Could not load habit history."
-            );
-
-        } finally {
-
-            setHistoryLoading(false);
-
-        }
-    };
-
-
     useEffect(() => {
 
         loadHabits();
-        loadHistory("week");
 
     }, []);
-
-
-    const handleHistoryChange = async (
-        period
-    ) => {
-
-        setHistoryPeriod(period);
-
-        await loadHistory(period);
-    };
 
 
     const openCreate = () => {
 
         setEditingId(null);
+
         setForm(initialForm);
+
         setError("");
+
         setShowForm(true);
 
     };
 
 
-    const openEdit = (habit) => {
+    const openEdit = (
+        habit
+    ) => {
 
-        setEditingId(habit.id);
+        setEditingId(
+            habit.id
+        );
 
         setForm({
-            title: habit.title || "",
+            title:
+                habit.title || "",
             description:
                 habit.description || "",
             frequency:
@@ -166,6 +119,7 @@ const Habits = () => {
         });
 
         setError("");
+
         setShowForm(true);
 
     };
@@ -190,8 +144,9 @@ const Habits = () => {
 
         event.preventDefault();
 
-        setError("");
         setSaving(true);
+
+        setError("");
 
 
         try {
@@ -205,58 +160,54 @@ const Habits = () => {
 
             } else {
 
-                await createHabit(form);
+                await createHabit(
+                    form
+                );
 
             }
 
 
             setForm(initialForm);
+
             setEditingId(null);
+
             setShowForm(false);
 
-
             await loadHabits();
-            await loadHistory(
-                historyPeriod
+
+        } catch (error) {
+
+            console.error(error);
+
+            setError(
+                "Could not save habit."
             );
-
-        } catch (err) {
-
-            console.error(err);
-
-            const data =
-                err.response?.data;
-
-
-            if (data) {
-
-                if (
-                    typeof data === "string"
-                ) {
-
-                    setError(data);
-
-                } else {
-
-                    setError(
-                        Object.values(data)
-                            .flat()
-                            .join(" ")
-                    );
-
-                }
-
-            } else {
-
-                setError(
-                    "Could not save habit."
-                );
-
-            }
 
         } finally {
 
             setSaving(false);
+
+        }
+    };
+
+
+    const handleComplete = async (
+        id
+    ) => {
+
+        try {
+
+            await completeHabit(id);
+
+            await loadHabits();
+
+        } catch (error) {
+
+            console.error(error);
+
+            setError(
+                "Could not complete habit."
+            );
 
         }
     };
@@ -282,41 +233,13 @@ const Habits = () => {
             await deleteHabit(id);
 
             await loadHabits();
-            await loadHistory(
-                historyPeriod
-            );
 
-        } catch (err) {
+        } catch (error) {
 
-            console.error(err);
+            console.error(error);
 
             setError(
                 "Could not delete habit."
-            );
-
-        }
-    };
-
-
-    const handleComplete = async (
-        id
-    ) => {
-
-        try {
-
-            await completeHabit(id);
-
-            await loadHabits();
-            await loadHistory(
-                historyPeriod
-            );
-
-        } catch (err) {
-
-            console.error(err);
-
-            setError(
-                "Could not complete habit."
             );
 
         }
@@ -351,7 +274,7 @@ const Habits = () => {
                         </h1>
 
                         <p>
-                            Small actions become meaningful progress.
+                            Create and manage your habits.
                         </p>
 
                     </div>
@@ -372,9 +295,11 @@ const Habits = () => {
 
 
                 {error && (
+
                     <div className="error-message">
                         {error}
                     </div>
+
                 )}
 
 
@@ -392,30 +317,29 @@ const Habits = () => {
                                         : "Create habit"}
                                 </h2>
 
-                                <p>
-                                    Keep it simple and achievable.
-                                </p>
-
                             </div>
 
 
                             <button
                                 type="button"
                                 className="icon-button"
-                                onClick={() => {
-                                    setShowForm(false);
-                                    setError("");
-                                }}
+                                onClick={() =>
+                                    setShowForm(false)
+                                }
                             >
-                                <X size={19} />
+
+                                <X size={18} />
+
                             </button>
 
                         </div>
 
 
                         <form
-                            onSubmit={handleSubmit}
                             className="habit-form"
+                            onSubmit={
+                                handleSubmit
+                            }
                         >
 
                             <label>
@@ -424,10 +348,13 @@ const Habits = () => {
 
                                 <input
                                     name="title"
-                                    type="text"
-                                    placeholder="e.g. Read for 20 minutes"
-                                    value={form.title}
-                                    onChange={handleChange}
+                                    value={
+                                        form.title
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                    placeholder="e.g. Exercise"
                                     required
                                 />
 
@@ -440,9 +367,13 @@ const Habits = () => {
 
                                 <textarea
                                     name="description"
-                                    placeholder="What do you want to achieve?"
-                                    value={form.description}
-                                    onChange={handleChange}
+                                    value={
+                                        form.description
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
+                                    placeholder="Describe your habit"
                                     rows="3"
                                 />
 
@@ -455,8 +386,12 @@ const Habits = () => {
 
                                 <select
                                     name="frequency"
-                                    value={form.frequency}
-                                    onChange={handleChange}
+                                    value={
+                                        form.frequency
+                                    }
+                                    onChange={
+                                        handleChange
+                                    }
                                 >
 
                                     <option value="daily">
@@ -477,8 +412,6 @@ const Habits = () => {
                                 disabled={saving}
                             >
 
-                                <CheckCircle2 size={18} />
-
                                 {saving
                                     ? "Saving..."
                                     : editingId
@@ -494,10 +427,6 @@ const Habits = () => {
                 )}
 
 
-                {/* =========================
-            HABIT LIST
-        ========================= */}
-
                 <section>
 
                     <div className="section-header">
@@ -509,7 +438,7 @@ const Habits = () => {
                             </h2>
 
                             <p>
-                                Complete your habits every day.
+                                Complete your habits from here.
                             </p>
 
                         </div>
@@ -521,26 +450,13 @@ const Habits = () => {
 
                         <div className="empty-state">
 
-                            <CheckCircle2 size={38} />
-
                             <h3>
-                                Your habit list is empty
+                                No habits yet
                             </h3>
 
                             <p>
-                                Add one small habit to get started.
+                                Create your first habit.
                             </p>
-
-                            <button
-                                className="primary-button"
-                                onClick={openCreate}
-                            >
-
-                                <Plus size={18} />
-
-                                Create first habit
-
-                            </button>
 
                         </div>
 
@@ -557,7 +473,9 @@ const Habits = () => {
                                         onComplete={
                                             handleComplete
                                         }
-                                        onEdit={openEdit}
+                                        onEdit={
+                                            openEdit
+                                        }
                                         onDelete={
                                             handleDelete
                                         }
@@ -567,66 +485,6 @@ const Habits = () => {
                             )}
 
                         </div>
-
-                    )}
-
-                </section>
-
-
-                {/* =========================
-            HISTORY
-        ========================= */}
-
-                <section className="history-wrapper">
-
-                    <div className="history-tabs">
-
-                        <button
-                            className={
-                                historyPeriod === "week"
-                                    ? "history-tab active"
-                                    : "history-tab"
-                            }
-                            onClick={() =>
-                                handleHistoryChange(
-                                    "week"
-                                )
-                            }
-                        >
-                            This Week
-                        </button>
-
-
-                        <button
-                            className={
-                                historyPeriod === "month"
-                                    ? "history-tab active"
-                                    : "history-tab"
-                            }
-                            onClick={() =>
-                                handleHistoryChange(
-                                    "month"
-                                )
-                            }
-                        >
-                            This Month
-                        </button>
-
-                    </div>
-
-
-                    {historyLoading ? (
-
-                        <div className="history-loading">
-                            Loading history...
-                        </div>
-
-                    ) : (
-
-                        <HabitHistory
-                            history={history}
-                            period={historyPeriod}
-                        />
 
                     )}
 

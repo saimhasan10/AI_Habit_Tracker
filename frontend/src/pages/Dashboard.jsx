@@ -1,36 +1,52 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
 
 import {
     CheckCircle2,
     Flame,
     ListChecks,
-    TrendingUp,
+    Target,
 } from "lucide-react";
-
-import {
-    useNavigate,
-} from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import HabitCard from "../components/HabitCard";
+import HabitHistory from "../components/HabitHistory";
 import Loading from "../components/Loading";
 
 import {
     completeHabit,
     deleteHabit,
     getDashboard,
+    getHabitHistory,
     getHabits,
 } from "../services/habitService";
 
 
 const Dashboard = () => {
 
-    const navigate = useNavigate();
+    const [ habits, setHabits ] =
+        useState([]);
 
-    const [ habits, setHabits ] = useState([]);
-    const [ dashboard, setDashboard ] = useState([]);
+    const [ dashboard, setDashboard ] =
+        useState({
+            total_habits: 0,
+            completed_today: 0,
+            today_consistency: 0,
+            week_consistency: 0,
+            month_consistency: 0,
+            best_streak: 0,
+        });
 
-    const [ loading, setLoading ] = useState(true);
+    const [ dailyHistory, setDailyHistory ] =
+        useState([]);
+
+    const [ weeklyHistory, setWeeklyHistory ] =
+        useState([]);
+
+    const [ loading, setLoading ] =
+        useState(true);
 
 
     const loadData = async () => {
@@ -38,35 +54,47 @@ const Dashboard = () => {
         try {
 
             const [
-                habitData,
+                habitsData,
                 dashboardData,
+                historyData,
             ] = await Promise.all([
+
                 getHabits(),
+
                 getDashboard(),
+
+                getHabitHistory("month"),
+
             ]);
 
 
             const habitList =
-                Array.isArray(habitData)
-                    ? habitData
-                    : habitData.results ||
-                    habitData.habits ||
-                    [];
-
-
-            const dashboardList =
-                Array.isArray(dashboardData)
-                    ? dashboardData
-                    : [];
+                Array.isArray(habitsData)
+                    ? habitsData
+                    : habitsData.results || [];
 
 
             setHabits(habitList);
-            setDashboard(dashboardList);
+
+
+            setDashboard(
+                dashboardData.summary || {}
+            );
+
+
+            setDailyHistory(
+                historyData.daily_history || []
+            );
+
+
+            setWeeklyHistory(
+                historyData.weekly_history || []
+            );
 
         } catch (error) {
 
             console.error(
-                "Dashboard loading error:",
+                "Dashboard error:",
                 error
             );
 
@@ -79,15 +107,15 @@ const Dashboard = () => {
 
 
     useEffect(() => {
+
         loadData();
+
     }, []);
 
 
-    // =========================
-    // COMPLETE HABIT
-    // =========================
-
-    const handleComplete = async (id) => {
+    const handleComplete = async (
+        id
+    ) => {
 
         try {
 
@@ -98,7 +126,7 @@ const Dashboard = () => {
         } catch (error) {
 
             console.error(
-                "Complete habit error:",
+                "Complete error:",
                 error
             );
 
@@ -106,26 +134,9 @@ const Dashboard = () => {
     };
 
 
-    // =========================
-    // EDIT HABIT
-    // =========================
-
-    const handleEdit = () => {
-
-        // Dashboard doesn't contain
-        // the edit form.
-        // Send user to Habits page.
-
-        navigate("/habits");
-
-    };
-
-
-    // =========================
-    // DELETE HABIT
-    // =========================
-
-    const handleDelete = async (id) => {
+    const handleDelete = async (
+        id
+    ) => {
 
         const confirmed =
             window.confirm(
@@ -147,7 +158,7 @@ const Dashboard = () => {
         } catch (error) {
 
             console.error(
-                "Delete habit error:",
+                "Delete error:",
                 error
             );
 
@@ -155,39 +166,17 @@ const Dashboard = () => {
     };
 
 
+    const handleEdit = () => {
+
+        window.location.href =
+            "/habits";
+
+    };
+
+
     if (loading) {
         return <Loading />;
     }
-
-
-    const totalHabits =
-        habits.length;
-
-
-    const totalStreaks =
-        dashboard.reduce(
-            (total, item) =>
-                total + (item.streak || 0),
-            0
-        );
-
-
-    const activeHabits =
-        habits.filter(
-            (habit) =>
-                habit.is_active === true
-        ).length;
-
-
-    const bestStreak =
-        dashboard.length > 0
-            ? Math.max(
-                ...dashboard.map(
-                    (item) =>
-                        item.streak || 0
-                )
-            )
-            : 0;
 
 
     return (
@@ -200,14 +189,12 @@ const Dashboard = () => {
             <main className="page-container">
 
 
-                {/* =========================
-            HEADER
-        ========================= */}
+                {/* HEADER */}
 
                 <section className="page-header">
 
                     <p className="eyebrow">
-                        YOUR PROGRESS
+                        DASHBOARD
                     </p>
 
                     <h1>
@@ -215,15 +202,13 @@ const Dashboard = () => {
                     </h1>
 
                     <p>
-                        Stay consistent and keep moving forward.
+                        See your progress and stay consistent.
                     </p>
 
                 </section>
 
 
-                {/* =========================
-            STATS
-        ========================= */}
+                {/* SUMMARY */}
 
                 <section className="stats-grid">
 
@@ -231,7 +216,7 @@ const Dashboard = () => {
                     <div className="stat-card">
 
                         <span className="stat-icon">
-                            <ListChecks size={21} />
+                            <ListChecks size={20} />
                         </span>
 
                         <div>
@@ -241,7 +226,7 @@ const Dashboard = () => {
                             </span>
 
                             <strong>
-                                {totalHabits}
+                                {dashboard.total_habits}
                             </strong>
 
                         </div>
@@ -252,17 +237,17 @@ const Dashboard = () => {
                     <div className="stat-card">
 
                         <span className="stat-icon">
-                            <CheckCircle2 size={21} />
+                            <CheckCircle2 size={20} />
                         </span>
 
                         <div>
 
                             <span>
-                                Active habits
+                                Completed today
                             </span>
 
                             <strong>
-                                {activeHabits}
+                                {dashboard.completed_today}
                             </strong>
 
                         </div>
@@ -273,17 +258,17 @@ const Dashboard = () => {
                     <div className="stat-card">
 
                         <span className="stat-icon">
-                            <TrendingUp size={21} />
+                            <Target size={20} />
                         </span>
 
                         <div>
 
                             <span>
-                                Total streaks
+                                This week
                             </span>
 
                             <strong>
-                                {totalStreaks}
+                                {dashboard.week_consistency}%
                             </strong>
 
                         </div>
@@ -294,7 +279,7 @@ const Dashboard = () => {
                     <div className="stat-card">
 
                         <span className="stat-icon">
-                            <Flame size={21} />
+                            <Flame size={20} />
                         </span>
 
                         <div>
@@ -304,80 +289,141 @@ const Dashboard = () => {
                             </span>
 
                             <strong>
-                                {bestStreak}
+                                {dashboard.best_streak}
                             </strong>
 
                         </div>
 
                     </div>
 
+                </section>
+
+
+                {/* CONSISTENCY */}
+
+                <section className="consistency-section">
+
+                    <div className="consistency-card">
+
+                        <span>
+                            Today's consistency
+                        </span>
+
+                        <strong>
+                            {dashboard.today_consistency}%
+                        </strong>
+
+                    </div>
+
+
+                    <div className="consistency-card">
+
+                        <span>
+                            Weekly consistency
+                        </span>
+
+                        <strong>
+                            {dashboard.week_consistency}%
+                        </strong>
+
+                    </div>
+
+
+                    <div className="consistency-card">
+
+                        <span>
+                            Monthly consistency
+                        </span>
+
+                        <strong>
+                            {dashboard.month_consistency}%
+                        </strong>
+
+                    </div>
 
                 </section>
 
 
-                {/* =========================
-            HABITS
-        ========================= */}
+                {/* HABITS */}
 
-                <section className="section-header">
+                <section className="dashboard-habits">
 
-                    <div>
+                    <div className="section-header">
 
-                        <h2>
-                            Your habits
-                        </h2>
+                        <div>
 
-                        <p>
-                            Keep working on your daily routine.
-                        </p>
+                            <h2>
+                                Your habits
+                            </h2>
+
+                            <p>
+                                Today's habit status.
+                            </p>
+
+                        </div>
 
                     </div>
+
+
+                    {habits.length === 0 ? (
+
+                        <div className="empty-state">
+
+                            <CheckCircle2 size={38} />
+
+                            <h3>
+                                No habits yet
+                            </h3>
+
+                            <p>
+                                Create your first habit to start tracking.
+                            </p>
+
+                        </div>
+
+                    ) : (
+
+                        <div className="habit-grid">
+
+                            {habits.map(
+                                (habit) => (
+
+                                    <HabitCard
+                                        key={habit.id}
+                                        habit={habit}
+                                        onComplete={
+                                            handleComplete
+                                        }
+                                        onEdit={handleEdit}
+                                        onDelete={
+                                            handleDelete
+                                        }
+                                    />
+
+                                )
+                            )}
+
+                        </div>
+
+                    )}
 
                 </section>
 
 
-                {habits.length === 0 ? (
+                {/* HISTORY */}
 
-                    <div className="empty-state">
-
-                        <CheckCircle2 size={38} />
-
-                        <h3>
-                            No habits yet
-                        </h3>
-
-                        <p>
-                            Create your first habit from the Habits page.
-                        </p>
-
-                    </div>
-
-                ) : (
-
-                    <div className="habit-grid">
-
-                        {habits
-                            .slice(0, 6)
-                            .map((habit) => (
-
-                                <HabitCard
-                                    key={habit.id}
-                                    habit={habit}
-                                    onComplete={handleComplete}
-                                    onEdit={handleEdit}
-                                    onDelete={handleDelete}
-                                />
-
-                            ))}
-
-                    </div>
-
-                )}
+                <HabitHistory
+                    dailyHistory={
+                        dailyHistory
+                    }
+                    weeklyHistory={
+                        weeklyHistory
+                    }
+                />
 
             </main>
 
         </div>
-
     );
 };
 
