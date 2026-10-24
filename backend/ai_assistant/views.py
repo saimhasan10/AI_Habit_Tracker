@@ -1,7 +1,9 @@
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+
 
 from .models import AIRequest
 from .serializers import AIRequestSerializer
@@ -14,6 +16,7 @@ class AIChatView(APIView):
         IsAuthenticated
     ]
 
+
     def post(
         self,
         request
@@ -22,6 +25,7 @@ class AIChatView(APIView):
         question = request.data.get(
             "question"
         )
+
 
         if not question:
 
@@ -33,9 +37,11 @@ class AIChatView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
         question = str(
             question
         ).strip()
+
 
         if not question:
 
@@ -47,6 +53,7 @@ class AIChatView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+
         if len(question) > 2000:
 
             return Response(
@@ -57,6 +64,7 @@ class AIChatView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
+
 
         prompt = f"""
 You are an AI habit coach.
@@ -71,6 +79,7 @@ Give simple, practical, encouraging advice.
 Keep the response concise and easy to understand.
 """
 
+
         try:
 
             answer = generate_ai_response(
@@ -81,24 +90,53 @@ Keep the response concise and easy to understand.
 
             print(
                 "Gemini error:",
-                error
+                repr(error)
             )
 
             return Response(
                 {
                     "error":
-                        "AI service is temporarily unavailable.",
-                    "detail":
-                        str(error)
+                        "AI service is temporarily unavailable."
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
 
-        ai_request = AIRequest.objects.create(
-            user=request.user,
-            question=question,
-            response=answer
-        )
+
+        if not answer:
+
+            return Response(
+                {
+                    "error":
+                        "AI returned an empty response."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+
+
+        try:
+
+            ai_request = AIRequest.objects.create(
+                user=request.user,
+                question=question,
+                response=answer
+            )
+
+        except Exception as error:
+
+            print(
+                "AI history database error:",
+                repr(error)
+            )
+
+            return Response(
+                {
+                    "error":
+                        "AI response was generated, "
+                        "but could not be saved."
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
         return Response(
             AIRequestSerializer(
@@ -108,11 +146,13 @@ Keep the response concise and easy to understand.
         )
 
 
+
 class AIHistoryView(APIView):
 
     permission_classes = [
         IsAuthenticated
     ]
+
 
     def get(
         self,
@@ -121,14 +161,20 @@ class AIHistoryView(APIView):
 
         history = (
             AIRequest.objects
-            .filter(user=request.user)
-            .order_by("-created_at")
+            .filter(
+                user=request.user
+            )
+            .order_by(
+                "-created_at"
+            )
         )
+
 
         serializer = AIRequestSerializer(
             history,
             many=True
         )
+
 
         return Response(
             serializer.data
